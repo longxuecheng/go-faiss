@@ -142,11 +142,18 @@ func (idx *faissIndex) SearchWithParameters(x []float32, k int64, params *Search
 	n := len(x) / idx.D()
 	distances = make([]float32, int64(n)*k)
 	labels = make([]int64, int64(n)*k)
+	searchParams, f, err := NewSearchParams(params)
+	defer f()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	if c := C.faiss_Index_search_with_params(
 		idx.idx,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
 		C.idx_t(k),
+		searchParams,
 		(*C.float)(&distances[0]),
 		(*C.idx_t)(&labels[0]),
 	); c != 0 {
@@ -265,11 +272,9 @@ type SearchParams struct {
 }
 
 // NewSearchParams 创建搜索参数
-func NewSearchParams(params SearchParams) (*C.FaissSearchParameters, func(), error) {
+func NewSearchParams(params *SearchParams) (*C.FaissSearchParameters, func(), error) {
 	var searchParams *C.FaissSearchParameters
 	var cleanupFunc func()
-
-	var ivfSearchParams *C.FaissSearchParametersIVF
 	switch params.SearchType {
 	case SearchTypeFlat:
 		// Flat索引使用默认参数
@@ -277,6 +282,7 @@ func NewSearchParams(params SearchParams) (*C.FaissSearchParameters, func(), err
 		cleanupFunc = func() {}
 
 	case SearchTypeIVF, SearchTypeIVFPQ:
+		var ivfSearchParams *C.FaissSearchParametersIVF
 		// 创建IVF搜索参数
 		ivfParams := C.faiss_SearchParametersIVF_new_with(
 			&ivfSearchParams,
@@ -288,9 +294,9 @@ func NewSearchParams(params SearchParams) (*C.FaissSearchParameters, func(), err
 			return nil, nil, errors.New("failed to create IVF search parameters")
 		}
 		// 转换为通用参数
-		searchParams = C.faiss_SearchParameters_cast_from_IVFSearchParameters(ivfParams)
+		searchParams = (*C.FaissSearchParameters)(unsafe.Pointer(ivfParams))
 		cleanupFunc = func() {
-			C.faiss_IVFSearchParameters_free(ivfParams)
+			C.free(ivfParams)
 		}
 
 	default:
