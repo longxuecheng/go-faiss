@@ -5,9 +5,13 @@ package faiss
 #include <faiss/c_api/Index_c.h>
 #include <faiss/c_api/impl/AuxIndexStructures_c.h>
 #include <faiss/c_api/index_factory_c.h>
+#include <faiss/c_api/IndexIVF_c.h>
 */
 import "C"
-import "unsafe"
+import (
+	"errors"
+	"unsafe"
+)
 
 // Index is a Faiss index.
 //
@@ -40,6 +44,8 @@ type Index interface {
 	// Returns the IDs of the k nearest neighbors for each query vector and the
 	// corresponding distances.
 	Search(x []float32, k int64) (distances []float32, labels []int64, err error)
+
+	SearchWithParameters(x []float32, k int64) (distances []float32, labels []int64, err error)
 
 	// RangeSearch queries the index with the vectors in x.
 	// Returns all vectors with distance < radius.
@@ -118,6 +124,25 @@ func (idx *faissIndex) Search(x []float32, k int64) (
 	distances = make([]float32, int64(n)*k)
 	labels = make([]int64, int64(n)*k)
 	if c := C.faiss_Index_search(
+		idx.idx,
+		C.idx_t(n),
+		(*C.float)(&x[0]),
+		C.idx_t(k),
+		(*C.float)(&distances[0]),
+		(*C.idx_t)(&labels[0]),
+	); c != 0 {
+		err = getLastError()
+	}
+	return
+}
+
+func (idx *faissIndex) SearchWithParameters(x []float32, k int64) (
+	distances []float32, labels []int64, err error,
+) {
+	n := len(x) / idx.D()
+	distances = make([]float32, int64(n)*k)
+	labels = make([]int64, int64(n)*k)
+	if c := C.faiss_Index_search_with_params(
 		idx.idx,
 		C.idx_t(n),
 		(*C.float)(&x[0]),
@@ -222,4 +247,55 @@ func IndexFactory(d int, description string, metric int) (*IndexImpl, error) {
 		return nil, getLastError()
 	}
 	return &IndexImpl{&idx}, nil
+}
+
+type SearchType int
+
+const (
+	SearchTypeFlat SearchType = iota
+	SearchTypeIVF
+	SearchTypeIVFPQ
+)
+
+type SearchParams struct {
+	SearchType SearchType
+	Nprobe     int     // 用于IVF类型
+	MaxCodes   int64   // 最大检查的编码数
+	Polarity   float32 // 用于某些特定搜索
+}
+
+// NewSearchParams 创建搜索参数
+func NewSearchParams(params SearchParams) (*C.FaissSearchParameters, func(), error) {
+	var searchParams *C.FaissSearchParameters
+	var cleanupFunc func()
+
+	var ivfSearchParams *C.FaissSearchParametersIVF
+	switch params.SearchType {
+	case SearchTypeFlat:
+		// Flat索引使用默认参数
+		searchParams = nil
+		cleanupFunc = func() {}
+
+	case SearchTypeIVF, SearchTypeIVFPQ:
+		// 创建IVF搜索参数
+		ivfParams := C.faiss_SearchParametersIVF_new_with(
+			&ivfSearchParams,
+			nil,
+			C.size_t(params.Nprobe),
+			C.size_t(params.MaxCodes),
+		)
+		if ivfParams == nil {
+			return nil, nil, errors.New("failed to create IVF search parameters")
+		}
+		// 转换为通用参数
+		searchParams = C.faiss_SearchParameters_cast_from_IVFSearchParameters(ivfParams)
+		cleanupFunc = func() {
+			C.faiss_IVFSearchParameters_free(ivfParams)
+		}
+
+	default:
+		return nil, nil, errors.New("unsupported search type")
+	}
+
+	return searchParams, cleanupFunc, nil
 }
