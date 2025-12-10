@@ -1,3 +1,3 @@
-module github.com/DataIntelligenceCrew/go-faiss
+module github.com/longxuecheng/go-faiss
 
 go 1.14
