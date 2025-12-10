@@ -296,7 +296,7 @@ func NewSearchParams(params *SearchParams) (*C.FaissSearchParameters, func(), er
 		// 转换为通用参数
 		searchParams = (*C.FaissSearchParameters)(unsafe.Pointer(ivfSearchParams))
 		cleanupFunc = func() {
-			C.free(ivfSearchParams)
+			C.free(unsafe.Pointer(ivfSearchParams))
 		}
 
 	default:
