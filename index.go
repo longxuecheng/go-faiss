@@ -45,7 +45,7 @@ type Index interface {
 	// corresponding distances.
 	Search(x []float32, k int64) (distances []float32, labels []int64, err error)
 
-	SearchWithParameters(x []float32, k int64) (distances []float32, labels []int64, err error)
+	SearchWithParameters(x []float32, k int64, params *SearchParams) (distances []float32, labels []int64, err error)
 
 	// RangeSearch queries the index with the vectors in x.
 	// Returns all vectors with distance < radius.
@@ -136,7 +136,7 @@ func (idx *faissIndex) Search(x []float32, k int64) (
 	return
 }
 
-func (idx *faissIndex) SearchWithParameters(x []float32, k int64) (
+func (idx *faissIndex) SearchWithParameters(x []float32, k int64, params *SearchParams) (
 	distances []float32, labels []int64, err error,
 ) {
 	n := len(x) / idx.D()
