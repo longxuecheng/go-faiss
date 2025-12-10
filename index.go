@@ -290,13 +290,13 @@ func NewSearchParams(params *SearchParams) (*C.FaissSearchParameters, func(), er
 			C.size_t(params.Nprobe),
 			C.size_t(params.MaxCodes),
 		)
-		if ivfParams == nil {
-			return nil, nil, errors.New("failed to create IVF search parameters")
+		if ivfParams != 0 {
+			return nil, nil, getLastError()
 		}
 		// 转换为通用参数
-		searchParams = (*C.FaissSearchParameters)(unsafe.Pointer(ivfParams))
+		searchParams = (*C.FaissSearchParameters)(unsafe.Pointer(ivfSearchParams))
 		cleanupFunc = func() {
-			C.free(ivfParams)
+			C.free(ivfSearchParams)
 		}
 
 	default:
