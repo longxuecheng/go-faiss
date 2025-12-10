@@ -9,7 +9,7 @@ import (
 	"log"
 	"math/rand"
 
-	"github.com/DataIntelligenceCrew/go-faiss"
+	"github.com/longxuecheng/go-faiss"
 )
 
 func main() {

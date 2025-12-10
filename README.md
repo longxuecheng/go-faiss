@@ -1,6 +1,6 @@
 # go-faiss
 
-[![Go Reference](https://pkg.go.dev/badge/github.com/DataIntelligenceCrew/go-faiss.svg)](https://pkg.go.dev/github.com/DataIntelligenceCrew/go-faiss)
+[![Go Reference](https://pkg.go.dev/badge/github.com/longxuecheng/go-faiss.svg)](https://pkg.go.dev/github.com/longxuecheng/go-faiss)
 
 Go bindings for [Faiss](https://github.com/facebookresearch/faiss), a library for vector similarity search.
 
@@ -24,11 +24,11 @@ You can do this with:
 
 Now you can install the Go module:
 
-    go get github.com/DataIntelligenceCrew/go-faiss
+    go get github.com/longxuecheng/go-faiss
 
 ## Usage
 
-API documentation is available at <https://pkg.go.dev/github.com/DataIntelligenceCrew/go-faiss>.
+API documentation is available at <https://pkg.go.dev/github.com/longxuecheng/go-faiss>.
 See the [Faiss wiki](https://github.com/facebookresearch/faiss/wiki) for more information.
 
 Examples can be found in the [_example](_example) directory.
